@@ -18,6 +18,9 @@ const bcrypt = require("bcrypt");
 const passport = require("passport");
 const flash = require("express-flash");
 const session = require("express-session");
+const { connect } = require("mongoose");
+const authSchema = require('./schemas/authschema')
+
 const initializepassport = require("./passport-config");
 initializepassport(passport, (email) =>
   user.find((user) => user.email === email),
@@ -42,6 +45,15 @@ app.use(passport.session());
 app.get("/",checkAuthenticated, (req, res) => {
   res.render("index.ejs", { name:req.user.name  });
 });
+
+connect(process.env.url)
+  .then(() => {
+    console.log("connected to the db");
+  })
+  .catch(() => {
+    console.log("didn't connect to the db");
+  });
+
 
 app.get("/login", (req, res) => {
   res.render("login.ejs");
@@ -71,9 +83,9 @@ app.post("/register", async (req, res) => {
   } catch {
     res.redirect("/register");
   }
-  console.log(user);
 });
-function checkAuthenticated(req, tres, next) {
+
+function checkAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
     return next()
   }

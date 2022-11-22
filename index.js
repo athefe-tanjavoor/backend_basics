@@ -18,14 +18,17 @@ const bcrypt = require("bcrypt");
 const passport = require("passport");
 const flash = require("express-flash");
 const session = require("express-session");
+const { json } = require("body-parser");
 const { connect } = require("mongoose");
-const authSchema = require('./schemas/authschema')
+const methodOverride = require('method-override')
+const authSchema = require("./schemas/authschema");
+app.use(json());
 
 const initializepassport = require("./passport-config");
-initializepassport(passport, (email) =>
-  user.find((user) => user.email === email),
-  (id) =>
-  user.find((user) => user.id === id)
+initializepassport(
+  passport,
+  (email) => user.find((user) => user.email === email),
+  (id) => user.find((user) => user.id === id)
 );
 const user = [];
 
@@ -41,9 +44,10 @@ app.use(
 );
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(methodOverride('_method'))
 
-app.get("/",checkAuthenticated, (req, res) => {
-  res.render("index.ejs", { name:req.user.name  });
+app.get("/", checkAuthenticated, (req, res) => {
+  res.render("index.ejs", { name: req.user.name });
 });
 
 connect(process.env.url)
@@ -54,25 +58,25 @@ connect(process.env.url)
     console.log("didn't connect to the db");
   });
 
-
-app.get("/login", (req, res) => {
+app.get("/login",  checkNotAuthenticated,(req, res) => {
   res.render("login.ejs");
 });
 app.post(
-  "/login",
+  "/login", checkNotAuthenticated,
   passport.authenticate("local", {
     successRedirect: "/",
-    failureRedirect: "/",
+    failureRedirect: "/login",
     failureFlash: true,
   })
 );
-app.get("/register", (req, res) => {
+app.get("/register", checkNotAuthenticated, (req, res) => {
   res.render("register.ejs");
 });
 
-app.post("/register", async (req, res) => {
+app.post("/register", checkNotAuthenticated, async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    // const hashedPassword = await bcrypt.compare(password, user.password);
     user.push({
       id: Date.now().toString(),
       name: req.body.name,
@@ -85,12 +89,25 @@ app.post("/register", async (req, res) => {
   }
 });
 
+app.delete('/logout', (req, res) => {
+  req.logOut()
+  res.redirect('/login')
+})
+
+
 function checkAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
-    return next()
+    return next();
   }
-  res.redirect('/login')
+  res.redirect("/login");
 }
-app.listen(4002, () => {
+function checkNotAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return res.redirect('/')
+  }
+  next()
+}
+
+app.listen(4005, () => {
   console.log("server started");
 });

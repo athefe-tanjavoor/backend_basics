@@ -20,10 +20,13 @@ const flash = require("express-flash");
 const session = require("express-session");
 const { json } = require("body-parser");
 const { connect } = require("mongoose");
-const methodOverride = require('method-override')
+const methodOverride = require("method-override");
 const authSchema = require("./schemas/authschema");
+const morgan = require("morgan");
+app.use(morgan("dev"));
 app.use(json());
-
+morgan.token('body', (req, res) => JSON.stringify(req.body));
+app.use(morgan(':method :url :status :response-time ms - :res[content-length] :body - :req[content-length]'));
 const initializepassport = require("./passport-config");
 initializepassport(
   passport,
@@ -44,7 +47,7 @@ app.use(
 );
 app.use(passport.initialize());
 app.use(passport.session());
-app.use(methodOverride('_method'))
+app.use(methodOverride("_method"));
 
 app.get("/", checkAuthenticated, (req, res) => {
   res.render("index.ejs", { name: req.user.name });
@@ -58,11 +61,12 @@ connect(process.env.url)
     console.log("didn't connect to the db");
   });
 
-app.get("/login",  checkNotAuthenticated,(req, res) => {
+app.get("/login", checkNotAuthenticated, (req, res) => {
   res.render("login.ejs");
 });
 app.post(
-  "/login", checkNotAuthenticated,
+  "/login",
+  checkNotAuthenticated,
   passport.authenticate("local", {
     successRedirect: "/",
     failureRedirect: "/login",
@@ -89,11 +93,10 @@ app.post("/register", checkNotAuthenticated, async (req, res) => {
   }
 });
 
-app.delete('/logout', (req, res) => {
-  req.logOut()
-  res.redirect('/login')
-})
-
+app.delete("/logout", (req, res) => {
+  req.logOut();
+  res.redirect("/login");
+});
 
 function checkAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
@@ -103,9 +106,9 @@ function checkAuthenticated(req, res, next) {
 }
 function checkNotAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
-    return res.redirect('/')
+    return res.redirect("/");
   }
-  next()
+  next();
 }
 
 app.listen(4005, () => {

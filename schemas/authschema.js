@@ -20,3 +20,4 @@ authSchema.pre("save", function (next) {
   next();
 });
 module.exports = model("User", authSchema);
+ 
